@@ -30,3 +30,8 @@ Week 1 - Initial Godot project setup and Hello World scene.
 - Godot Engine 4
 - GDScript
 - Git and GitHub
+
+## Screenshot
+
+<img width="1917" height="1078" alt="image" src="https://github.com/user-attachments/assets/9986f3ba-da80-4b1f-be3a-db0636afbce0" />
+
