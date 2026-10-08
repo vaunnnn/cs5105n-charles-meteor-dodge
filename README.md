@@ -81,12 +81,12 @@ These screenshots document the Week 3 levels running in Godot.
 **Level 1 - Meteor Training:** The blue TileMap arena shows a falling meteor,
 the player at the marked start, 18 seconds remaining, and the locked exit.
 
-![Level 1 gameplay showing the tiled training arena, falling meteor, countdown, and locked exit](1.png)
+![Level 1 gameplay showing the tiled training arena, falling meteor, countdown, and locked exit](screenshots/1.png)
 
 **Level 2 - Meteor Storm:** The purple TileMap arena shows the striped edge
 hazards and the game-over screen with instructions to restart the current level.
 
-![Level 2 game-over screen showing the storm arena, striped edge hazards, and Enter-to-restart instructions](2.png)
+![Level 2 game-over screen showing the storm arena, striped edge hazards, and Enter-to-restart instructions](screenshots/2.png)
 
 ### TileMap system and hazards
 
@@ -158,3 +158,146 @@ spawning disabled; this is automated verification, not interactive playtesting.
 
 All scene, script, and tileset sources belong in Git. The existing .gitignore
 excludes Godot's generated .godot cache and export/build directories.
+
+## Week 4 - Art, Animation & Particles
+
+### Requirement status
+
+| Requirement | Final review result |
+| --- | --- |
+| Two AnimationPlayer animations | Implemented: looping `idle` and `move` scale tracks. |
+| Movement-state animation selection | Implemented using horizontal input; blocked movement still selects `move`. |
+| Action-triggered particle effect | Implemented: movement emits a cyan CPU particle trail; visual readability still needs manual confirmation. |
+| AI-generated image integrated | Supplied PNG exists and is referenced by the shared main scene in both levels. |
+| AI image edited | Unverified: no source-image editing history has been provided. |
+| AI tool, exact prompt, and editing documentation | Incomplete: fill in the placeholders below with actual details. |
+| Playable game ready for submission | Automated gameplay checks pass; visual playthrough, AI documentation, and inclusion of currently untracked assets remain outstanding. |
+
+### Player animations
+
+`player.tscn` contains an AnimationPlayer with two looping scale animations:
+
+- **idle:** A 1.6-second breathing pulse around the original `(0.35, 0.35)` scale,
+  ranging from `(0.343, 0.343)` to `(0.357, 0.357)`.
+- **move:** A 0.4-second squash/stretch loop, reaching `(0.378, 0.322)`.
+
+`player.gd` starts idle on scene entry and selects move while horizontal input
+is held, returning to idle when the input axis is zero. It only calls `play()`
+when the animation changes, so loops are not restarted each physics frame.
+AnimationPlayer alone controls Sprite2D scale; the script retains directional
+rotation. Holding movement against a wall still selects move, although the
+particle trail stops when the ship no longer changes position.
+Game over and victory disable player physics but do not stop AnimationPlayer;
+the last selected animation continues. This review preserves that behavior.
+
+### Movement particles
+
+The player's `MovementTrail` is a CPUParticles2D node with 20 particles and a
+0.4-second lifetime. A native 16 x 16 radial GradientTexture2D, additive
+CanvasItemMaterial, and fading cyan color ramp provide a soft glowing trail
+without downloaded particle textures or a glow post-processing requirement.
+The project continues to use GL Compatibility.
+
+The emitter switches to the trailing side, 20 pixels horizontally from the
+player center and 6 pixels below it. World coordinates (`local_coords = false`)
+leave old particles behind. Actual horizontal displacement enables emission;
+idle, blocked movement, and disabled player physics stop new particles.
+Existing particles fade out naturally. Collision shapes are not animated.
+
+### AI-generated background and editing record
+
+The supplied AI-generated image is stored at
+`res://assets/backgrounds/space_background.png`.
+Both levels inherit `Background/Space` from `main.tscn`: a full-viewport
+TextureRect on CanvasLayer -1, behind the arena, player, meteors, and HUD.
+Mouse filtering is Ignore, and the background has no collision objects.
+
+The image uses Ignore Size and Keep Aspect Covered. Godot scales and centrally
+crops the portrait image to fill the 960 x 640 viewport without distorting it.
+Full-viewport anchors follow the viewport size. `canvas_items` remains enabled;
+`project.godot` has no explicit stretch-aspect override. This is a rendering
+adjustment, not evidence of manually editing the source PNG.
+
+The Week 3 floor, highlighted movement-row, and outer boundary tiles are now
+transparent to reveal the space image across the play area. Their cells remain
+in both maps, and the invisible boundary tiles retain their collision shapes.
+Striped hazard tiles remain visible with their existing hazard data.
+The arena generator preserves this presentation.
+The Week 3 screenshots above document the earlier grid appearance.
+
+Complete this record before submission; these details have not been supplied:
+
+- **AI tool and model:** [TODO: enter the actual tool/model used.]
+- **Exact generation prompt:** [TODO: paste the exact prompt used.]
+- **Manual image-editing tool:** [TODO: enter the actual editor used.]
+- **Manual edits to the generated image:** [TODO: describe the actual edits and
+  export steps; if none were made, state that and complete the required edit.]
+
+The background asset exists and is integrated. The requirement for an edited
+AI image is **not yet verified**; runtime scaling/cropping alone is not claimed
+to satisfy that requirement.
+
+### Week 4 screenshots
+
+**Movement particles:** A glowing cyan trail follows the tilted player during
+movement. This screenshot shows the earlier arena grid, before the floor and
+outer border visuals were hidden.
+
+![Week 4 movement effect showing a cyan particle trail behind the tilted player in Level 1](screenshots/particles.png)
+
+**Space background:** The integrated AI-generated space image fills the play
+area with the floor and outer grid hidden. The player, meteor, objective,
+countdown, and exit remain visible.
+
+![Week 4 Level 1 showing the space background with the grid hidden and gameplay elements visible](screenshots/background.png)
+
+These supplied screenshots document appearance at two stages of Week 4;
+they do not replace checking animation loops and gameplay in motion.
+
+### Verification and submission checklist
+
+Static review confirms that player node paths match the scene, both animations
+target only Sprite2D scale, the script controls rotation separately, and the
+background references the actual PNG. `main.gd` expects an Arena supplied by
+the level scenes; use F5 or run a level scene, not `main.tscn` alone.
+
+Run the editor/import, startup, gameplay, and level-audit commands documented
+under Week 3. Headless checks exercise resources and gameplay but do not prove
+visual quality or replace an interactive playthrough.
+
+Final review with Godot 4.7.2 after hiding both floor and outer grids: editor/import and
+project-startup checks passed, all 20 gameplay checks passed, and the full
+level audit completed with zero failures (including the real 20/30-second
+countdowns). All literal scene/script resource paths resolve, and
+`git diff --check` passed. No interactive visual playtest was performed during
+this review. No requested headless check was blocked or unavailable.
+
+The review found no missing literal resource references, broken gameplay node
+paths, conflicting animation/script scale writes, or GDScript parse errors in
+the validated project. Meteor spawning, controls, collisions, level transitions,
+and restart behavior passed the existing automated checks. Only README content
+was intentionally changed during this final review; no gameplay changes were needed.
+
+Before submitting:
+
+1. Run F5 and inspect idle breathing, sustained movement squash/stretch, and
+   left/right tilt. Release movement and confirm idle resumes.
+2. Check that cyan particles trail behind in both directions, remain behind
+   when reversing, and fade after stopping or game over.
+3. Confirm the space image is visible through the former floor grid, with
+   readable meteors, ship, HUD, and Level 2 hazard markers. Confirm that the
+   invisible outer boundaries still stop movement. Resize the
+   window and inspect the crop and coverage.
+4. Play both levels, test meteor/hazard collisions, exits, and Enter-to-restart.
+5. Fill in the AI provenance and editing placeholders above, and capture
+   current Week 4 screenshots after visual testing.
+6. Include the PNG, its `.import` settings, scenes, scripts, tile resources,
+   screenshots, and README in the eventual GitHub submission. Exclude `.godot/`.
+   At review time, `assets/backgrounds/` and `screenshots/` are untracked, and
+   the old root-level screenshots are marked deleted. Include the moved images
+   so the README links resolve on GitHub. PNG files use Git LFS via
+   `.gitattributes`; Git LFS is installed locally, but a fresh GitHub clone and
+   LFS asset download have not been tested by this review.
+
+Week 4 is not claimed complete until the AI editing/documentation gaps and
+manual visual checks are resolved. No commit or push is performed by this review.

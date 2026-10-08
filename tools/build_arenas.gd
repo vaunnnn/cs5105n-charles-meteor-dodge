@@ -39,6 +39,9 @@ func _initialize() -> void:
 		var coord := Vector2i(index, 0)
 		source.create_tile(coord)
 		var data := source.get_tile_data(coord, 0)
+		# Show space through floors, the movement row, and outer walls.
+		if index in [0, 1, 2, 4, 5]:
+			data.modulate = Color(1, 1, 1, 0)
 		if index == 2:
 			data.add_collision_polygon(0)
 			data.set_collision_polygon_points(0, 0, PackedVector2Array([

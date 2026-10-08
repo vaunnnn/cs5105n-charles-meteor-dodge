@@ -5,8 +5,87 @@
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_0xlia"]
 
+[sub_resource type="Animation" id="Animation_idle"]
+resource_name = "idle"
+length = 1.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4, 0.8, 1.2, 1.6),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.35, 0.35), Vector2(0.357, 0.357), Vector2(0.35, 0.35), Vector2(0.343, 0.343), Vector2(0.35, 0.35)]
+}
+
+[sub_resource type="Animation" id="Animation_move"]
+resource_name = "move"
+length = 0.4
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector2(0.35, 0.35), Vector2(0.378, 0.322), Vector2(0.35, 0.35), Vector2(0.364, 0.336), Vector2(0.35, 0.35)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_player"]
+_data = {
+&"idle": SubResource("Animation_idle"),
+&"move": SubResource("Animation_move")
+}
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_trail"]
+blend_mode = 1
+
+[sub_resource type="Gradient" id="Gradient_trail_dot"]
+offsets = PackedFloat32Array(0, 0.25, 1)
+colors = PackedColorArray(1, 1, 1, 1, 1, 1, 1, 0.7, 1, 1, 1, 0)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_trail"]
+gradient = SubResource("Gradient_trail_dot")
+width = 16
+height = 16
+fill = 1
+fill_from = Vector2(0.5, 0.5)
+fill_to = Vector2(1, 0.5)
+
+[sub_resource type="Gradient" id="Gradient_trail_fade"]
+offsets = PackedFloat32Array(0, 0.25, 1)
+colors = PackedColorArray(0.65, 0.95, 1, 0.85, 0.2, 0.8, 1, 0.65, 0.1, 0.45, 1, 0)
+
 [node name="Player" type="CharacterBody2D" unique_id=1914600478]
 script = ExtResource("1_onrkg")
+
+[node name="MovementTrail" type="CPUParticles2D" parent="."]
+show_behind_parent = true
+material = SubResource("CanvasItemMaterial_trail")
+position = Vector2(-20, 6)
+emitting = false
+amount = 20
+lifetime = 0.4
+local_coords = false
+texture = SubResource("GradientTexture2D_trail")
+emission_shape = 1
+emission_sphere_radius = 3.0
+direction = Vector2(-1, 0)
+spread = 18.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 12.0
+initial_velocity_max = 28.0
+scale_amount_min = 0.4
+scale_amount_max = 0.7
+color_ramp = SubResource("Gradient_trail_fade")
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1036926171]
 scale = Vector2(0.35, 0.35)
@@ -14,3 +93,8 @@ texture = ExtResource("2_i3pqv")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2011453231]
 shape = SubResource("RectangleShape2D_0xlia")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_player")
+}
