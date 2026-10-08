@@ -24,8 +24,8 @@ func _physics_process(delta: float) -> void:
 
 	position.x = clamp(
 		position.x,
-		30.0,
-		screen_width - 30.0
+		54.0,
+		screen_width - 54.0
 	)
 
 	# Game feel / juice
