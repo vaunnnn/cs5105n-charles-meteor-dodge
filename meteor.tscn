@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://ca5ywsowgxqcf"]
+
+[ext_resource type="Texture2D" uid="uid://ci4exymgkdqho" path="res://icon.svg" id="1_n51xl"]
+[ext_resource type="Script" uid="uid://xj21lktvxfym" path="res://meteor.gd" id="1_ohe0j"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_0xlia"]
+
+[node name="Meteor" type="Area2D" unique_id=1873459638]
+script = ExtResource("1_ohe0j")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=40673680]
+modulate = Color(0.17913824, 0.122743584, 0.0815677, 1)
+scale = Vector2(0.25, 0.25)
+texture = ExtResource("1_n51xl")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=33565589]
+shape = SubResource("CircleShape2D_0xlia")
