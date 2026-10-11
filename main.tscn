@@ -1,8 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://buarfuxkja15"]
+[gd_scene load_steps=6 format=3 uid="uid://buarfuxkja15"]
 
 [ext_resource type="Script" path="res://main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://player.tscn" id="2"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/space_background.png" id="3_background"]
+[ext_resource type="PackedScene" path="res://ui/hud.tscn" id="4_hud"]
+
 [sub_resource type="RectangleShape2D" id="ExitShape"]
 size = Vector2(48, 64)
 
@@ -65,38 +67,4 @@ offset_right = 45.0
 text = "EXIT\nLOCKED"
 horizontal_alignment = 1
 
-[node name="HUD" type="CanvasLayer" parent="."]
-
-[node name="Objective" type="Label" parent="HUD"]
-offset_left = 32.0
-offset_top = 12.0
-offset_right = 928.0
-theme_override_font_sizes/font_size = 24
-
-[node name="Countdown" type="Label" parent="HUD"]
-offset_left = 32.0
-offset_top = 78.0
-offset_right = 928.0
-theme_override_font_sizes/font_size = 22
-
-[node name="Controls" type="Label" parent="HUD"]
-offset_left = 32.0
-offset_top = 596.0
-offset_right = 928.0
-text = "A / D or arrows: move | START: center | Avoid meteors and striped X tiles"
-horizontal_alignment = 1
-theme_override_font_sizes/font_size = 18
-
-[node name="Message" type="Label" parent="HUD"]
-visible = false
-offset_left = 80.0
-offset_top = 260.0
-offset_right = 880.0
-offset_bottom = 400.0
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_offset_x = 3
-theme_override_constants/shadow_offset_y = 3
-theme_override_font_sizes/font_size = 30
-horizontal_alignment = 1
-vertical_alignment = 1
+[node name="HUD" parent="." instance=ExtResource("4_hud")]
