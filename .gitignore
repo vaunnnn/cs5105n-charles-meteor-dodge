@@ -11,3 +11,8 @@ build/
 Thumbs.db
 
 *.tmp
+
+# Local Python/audio tooling and diagnostic output.
+__pycache__/
+*.py[cod]
+*.log

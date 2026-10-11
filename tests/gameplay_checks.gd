@@ -33,6 +33,14 @@ func run() -> void:
 	check(level.arena.get_used_cells().size() == 420, "Level 1 has 420 saved tile cells")
 	check(level.survival_timer.wait_time == 20.0 and level.spawn_timer.wait_time == 1.5, "Training timing")
 	check(not level.exit_open, "Exit initially locked")
+	await create_timer(1.6).timeout
+	check(level.get_node("Meteors").get_child_count() > 0, "Spawn timer creates a meteor automatically")
+	var falling = level.get_node("Meteors").get_child(0)
+	var previous_y: float = falling.position.y
+	await frames()
+	check(falling.position.y > previous_y, "Meteor falls during actual process frames")
+	falling.queue_free()
+	await frames()
 	level.spawn_timer.stop()
 	level.player.position.x = 848
 	await frames()
@@ -98,4 +106,9 @@ func run() -> void:
 	Input.action_release("move_left")
 	check(level.player.position.x >= 42, "Boundary blocks ship")
 	print("Gameplay checks complete: %d failure(s)" % failures)
+	# Let the audio server release active playback before headless shutdown.
+	for player in root.get_node("AudioManager").get_children():
+		player.stop()
+	# A few render frames can be shorter than one audio mix/release cycle.
+	await create_timer(0.25).timeout
 	quit(1 if failures else 0)

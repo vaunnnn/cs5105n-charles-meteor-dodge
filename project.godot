@@ -11,9 +11,18 @@ config_version=5
 [application]
 
 config/name="MeteorDodge"
-run/main_scene="res://level_1.tscn"
+run/main_scene="res://ui/main_menu.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[audio]
+
+default_bus_layout="res://default_bus_layout.tres"
+
+[autoload]
+
+Settings="*res://ui/settings.gd"
+AudioManager="*res://audio/audio_manager.gd"
 
 [display]
 

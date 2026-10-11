@@ -92,4 +92,7 @@ func run() -> void:
 			level._on_exit_entered(level.player)
 			check(level.finished and not level.transitioning, "Repeated goal signal cannot transition after victory")
 	print("Level audit complete: %d failure(s)" % failures)
+	for player in root.get_node("AudioManager").get_children():
+		player.stop()
+	await create_timer(0.25).timeout
 	quit(1 if failures else 0)

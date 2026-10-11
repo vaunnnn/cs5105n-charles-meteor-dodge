@@ -7,21 +7,27 @@ extends Node2D
 @onready var spawn_timer: Timer = $SpawnTimer
 @onready var survival_timer: Timer = $SurvivalTimer
 @onready var arena: TileMapLayer = $Arena
-@onready var countdown: Label = $HUD/Countdown
-@onready var message: Label = $HUD/Message
+@onready var hud = $HUD
+@onready var countdown: Label = hud.countdown
+@onready var message: Label = hud.message
 @onready var goal: Area2D = $Exit
 
 var game_over := false
 var exit_open := false
 var finished := false
 var transitioning := false
+var survival_seconds: float = 0.0
+var score: int = 0
 
 
 func _ready() -> void:
+	AudioManager.start_music()
 	player.position = Vector2(480, 528)
 	spawn_timer.wait_time = 1.5 if level_number == 1 else 0.8
 	survival_timer.wait_time = 20.0 if level_number == 1 else 30.0
-	$HUD/Objective.text = ("LEVEL 1 - METEOR TRAINING\nSurvive for 20 seconds."
+	hud.restart_requested.connect(_request_restart)
+	hud.main_menu_requested.connect(_request_main_menu)
+	hud.objective.text = ("LEVEL 1 - METEOR TRAINING\nSurvive for 20 seconds."
 		if level_number == 1 else "LEVEL 2 - METEOR STORM\nSurvive for 30 seconds.")
 	goal.body_entered.connect(_on_exit_entered)
 	spawn_timer.timeout.connect(_spawn_meteor)
@@ -30,12 +36,38 @@ func _ready() -> void:
 	survival_timer.start()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if not game_over and not finished and not transitioning:
+		survival_seconds += delta
+		# Award ten points for each complete second of this level attempt.
+		score = floori(survival_seconds) * 10
+		hud.update_stats(score, survival_seconds)
 	if not game_over and not exit_open and not finished:
 		countdown.text = "Time remaining: %d s" % ceili(survival_timer.time_left)
-	if (game_over or finished) and not transitioning and Input.is_action_just_pressed("ui_accept"):
-		transitioning = true
-		_restart.call_deferred()
+	# Respect keyboard focus: Enter on MAIN MENU must not also restart.
+	if (game_over or finished) and not transitioning and Input.is_action_just_pressed("ui_accept") \
+			and get_viewport().gui_get_focus_owner() == hud.get_node("%Restart"):
+		_request_restart()
+
+
+func _request_restart() -> void:
+	if transitioning or not (game_over or finished):
+		return
+	transitioning = true
+	AudioManager.play_click()
+	_restart.call_deferred()
+
+
+func _request_main_menu() -> void:
+	if transitioning:
+		return
+	transitioning = true
+	AudioManager.play_click()
+	_load_main_menu.call_deferred()
+
+
+func _load_main_menu() -> void:
+	get_tree().change_scene_to_file("res://ui/main_menu.tscn")
 
 
 func _physics_process(_delta: float) -> void:
@@ -73,11 +105,11 @@ func _on_player_hit() -> void:
 	if game_over or finished or transitioning:
 		return
 	game_over = true
+	AudioManager.play_collision()
 	_stop_hazards()
 	player.set_physics_process(false)
 	countdown.text = "Mission stopped"
-	message.text = "GAME OVER\nPress Enter to restart this level"
-	message.show()
+	hud.show_result(score, survival_seconds)
 
 
 func _unlock_exit() -> void:
@@ -101,8 +133,7 @@ func _on_exit_entered(body: Node2D) -> void:
 		_load_second_level.call_deferred()
 	else:
 		finished = true
-		message.text = "MISSION COMPLETE!\nBoth levels survived.\nPress Enter to restart from Level 1"
-		message.show()
+		hud.show_result(score, survival_seconds, true)
 
 
 func _load_second_level() -> void:
