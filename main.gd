@@ -2,6 +2,7 @@ extends Node2D
 
 @export_range(1, 2) var level_number: int = 1
 @export var meteor_scene: PackedScene = preload("res://meteor.tscn")
+@export var hunter_drone_scene: PackedScene
 
 @onready var player: CharacterBody2D = $Player
 @onready var spawn_timer: Timer = $SpawnTimer
@@ -18,6 +19,8 @@ var finished := false
 var transitioning := false
 var survival_seconds: float = 0.0
 var score: int = 0
+var drone_spawn_timer: Timer
+var hunter_drone: HunterDrone
 
 
 func _ready() -> void:
@@ -34,6 +37,12 @@ func _ready() -> void:
 	survival_timer.timeout.connect(_unlock_exit)
 	spawn_timer.start()
 	survival_timer.start()
+	if level_number == 2 and hunter_drone_scene != null:
+		drone_spawn_timer = Timer.new()
+		drone_spawn_timer.one_shot = true
+		add_child(drone_spawn_timer)
+		drone_spawn_timer.timeout.connect(_spawn_hunter_drone)
+		drone_spawn_timer.start(3.0)
 
 
 func _process(delta: float) -> void:
@@ -54,6 +63,7 @@ func _request_restart() -> void:
 	if transitioning or not (game_over or finished):
 		return
 	transitioning = true
+	_stop_hazards()
 	AudioManager.play_click()
 	_restart.call_deferred()
 
@@ -62,6 +72,7 @@ func _request_main_menu() -> void:
 	if transitioning:
 		return
 	transitioning = true
+	_stop_hazards()
 	AudioManager.play_click()
 	_load_main_menu.call_deferred()
 
@@ -96,9 +107,24 @@ func _spawn_meteor() -> void:
 func _stop_hazards() -> void:
 	spawn_timer.stop()
 	survival_timer.stop()
+	if is_instance_valid(drone_spawn_timer):
+		drone_spawn_timer.stop()
+	if is_instance_valid(hunter_drone):
+		hunter_drone.stop()
 	for meteor in $Meteors.get_children():
 		meteor.set_process(false)
 		meteor.queue_free()
+
+
+func _spawn_hunter_drone() -> void:
+	if level_number != 2 or hunter_drone_scene == null or is_instance_valid(hunter_drone) \
+			or game_over or exit_open or finished or transitioning:
+		return
+	hunter_drone = hunter_drone_scene.instantiate()
+	hunter_drone.position = Vector2(240, 260)
+	hunter_drone.z_index = 2
+	hunter_drone.hit_player.connect(_on_player_hit)
+	add_child(hunter_drone)
 
 
 func _on_player_hit() -> void:

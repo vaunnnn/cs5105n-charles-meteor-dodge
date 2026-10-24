@@ -1,9 +1,20 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="PackedScene" path="res://main.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://assets/arena_2.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://enemies/hunter_drone.tscn" id="3_drone"]
+
+[sub_resource type="NavigationPolygon" id="DroneNavigation"]
+vertices = PackedVector2Array(48, 176, 912, 176, 912, 528, 48, 528)
+polygons = [PackedInt32Array(0, 1, 2, 3)]
+outlines = [PackedVector2Array(48, 176, 912, 176, 912, 528, 48, 528)]
+agent_radius = 12.0
 
 [node name="MeteorStorm" instance=ExtResource("1")]
 level_number = 2
+hunter_drone_scene = ExtResource("3_drone")
 
 [node name="Arena" parent="." instance=ExtResource("2")]
+
+[node name="DroneNavigation" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("DroneNavigation")

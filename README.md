@@ -539,9 +539,209 @@ Week 5 peer feedback. Runtime image scaling does not establish manual image edit
 - Manual image-editing tool: **[TODO: enter the tool, if used]**.
 - Manual edits/export steps: **[TODO: describe actual edits; if none, state that]**.
 
-## Week 6 - Pending Documentation
+## Week 6 — AI & Enemies
 
-Documentation will be added after the week's work is reviewed.
+### Hunter Drone and finite state machine
+
+Level 2 now adds one reusable `HunterDrone` (`enemies/hunter_drone.tscn` and
+`enemies/hunter_drone.gd`). Its native-drawn magenta wings and circular sensor
+distinguish it from the player and orange meteors. The sensor is cyan during
+patrol, amber during pursuit, red with a range ring during attack, and grey when
+disabled. No external artwork or plugin is required.
+
+| State | Actual behavior | Transitions |
+| --- | --- | --- |
+| PATROL | Follow predefined upper/middle arena waypoints at 60 pixels/second, advancing on arrival. Side approaches offer detection opportunities without descending directly onto the initial spawn. | A player-group body detected within 250 pixels enters CHASE. |
+| CHASE | Follow a NavigationAgent2D path at 120 pixels/second; refresh the player's current target every 0.2 seconds. | Enter ATTACK within 35 pixels and the attack area; return to PATROL beyond 290 pixels or if the player disappears. |
+| ATTACK | Stop moving, show a red ring, and wait a 0.45-second windup before emitting the existing hit signal if the player is still within 35 pixels. | Return to CHASE beyond 45 pixels; return to PATROL beyond 290 pixels or if the player disappears. |
+
+The larger release distances prevent rapid state switching at the detection and
+attack boundaries. An attack has a one-second cooldown and reports only one hit
+per drone instance, matching the one-hit elimination rules. The windup gives the
+horizontally moving player a chance to evade. Speeds, radii, windup, cooldown,
+and patrol positions are exported for review and balancing in the Inspector.
+
+### Detection, collisions, and navigation
+
+The drone is a CharacterBody2D on collision layer 2, with a layer-1 mask for the
+existing walls/player. Its DetectionArea and AttackArea have no collision layer
+and monitor layer 1; only bodies in the existing `player` group qualify. Meteors
+and the exit continue detecting layer 1, so the drone cannot activate either.
+The player retains its original layer/mask and horizontal movement.
+
+`level_2.tscn` contains a saved NavigationRegion2D/NavigationPolygon with usable
+vertices and polygon indices. It covers drone-center coordinates x=48..912,
+y=176..528, leaving clearance inside the existing border tiles (interior
+x=32..928, y=160..544). Inspection found no internal physical blockers: striped
+tiles use `hazard` metadata rather than collision polygons. Their player-hit
+behavior is preserved; they do not block this flying drone's paths. Consequently
+valid paths across this open region are usually straight. No new walls or map
+edits were needed. If physical obstacles are added later, update/rebake the
+navigation polygon to exclude them and verify routes around them.
+
+Movement waits for NavigationServer synchronization and uses the agent's next
+path position. Missing maps and empty/finished paths stop movement safely;
+partial paths stop at their reachable endpoint. Targets and drone position are
+bounded to the arena. There is no direct-movement fallback that bypasses an
+unavailable navigation path.
+
+### Level 2 integration and lifecycle
+
+Only Level 2 assigns the exported drone PackedScene. A scene-owned one-shot
+timer spawns it after three seconds at `(240, 260)`, away from `(480, 528)`.
+Repeated spawn calls cannot create duplicates. The drone's `hit_player` signal
+connects once to `main.gd`'s authoritative `_on_player_hit()`, preserving the
+existing sound, results, score freeze, and restart behavior.
+
+`_stop_hazards()` cancels a pending drone spawn and stops any existing drone's
+physics and attacks. It runs on death, exit unlock, and restart/menu transitions;
+the drone stays disabled through completion. Reloading frees the previous drone
+and timer. Level 1 retains its original scenes, objective, and meteor gameplay.
+Level 2 retains its 30-second objective, meteors, hazards, and exit progression.
+
+### Automated verification
+
+Run from the project directory with Godot 4.7.2 (`godot` below means the executable
+on PATH, or use PowerShell `& "full/path/to/godot.exe"`):
+
+```sh
+godot --headless --path . --editor --quit
+godot --headless --path . --quit-after 120
+godot --headless --path . --script tests/enemy_ai_checks.gd
+godot --headless --path . --script tests/gameplay_checks.gd
+godot --headless --path . --script tests/ui_checks.gd
+godot --headless --path . --script tests/ui_checks.gd -- --quit-check
+godot --headless --path . --script tests/audio_accessibility_checks.gd
+godot --headless --path . --script tests/level_audit.gd
+```
+
+The AI suite isolates random meteors and uses real physics frames and Area2D
+overlaps to check delayed spawning, patrol movement/waypoints, detection,
+chasing a moving target, attack windup and game over, state release conditions,
+valid navigation paths, missing/empty navigation data, shutdown, restart,
+single signal connections, unchanged Level 1 timing, and reaching Level 2's exit.
+It accelerates the survival timer for its completion check; the existing level
+audit separately checks actual 20/30-second countdowns. Automated checks do not
+establish interactive difficulty or visual/audio quality.
+
+Validation on 2026-10-24 with the official Godot 4.7.2 Windows console build:
+editor/import and 120-frame project startup exited 0; all 35 enemy AI checks,
+22 gameplay checks, 14 UI checks, 132 audio/accessibility assertions, and 23
+level-audit checks passed with zero failures. The separate Quit-button check
+also exited 0. Existing test files were preserved. `git diff --check` passed.
+Godot was downloaded to a temporary tools folder outside the repository because
+no installed executable was found on PATH or in the searched local locations.
+
+During automated debugging, an inferred WeakRef test variable required an
+explicit type. Navigation tests were also corrected to account for Godot's
+default-map fallback and deferred NavigationServer synchronization; an inactive
+map guard now stops movement. The final AI rerun passed after those corrections.
+That audit did not include an interactive playtest, student modification, or
+Week 6 screenshots. The subsequent screenshot capture is documented below.
+
+### Final Week 6 implementation review (2026-10-25)
+
+Codex reviewed the drone script/scene, shared level lifecycle, navigation region,
+player/meteor collision configuration, tests, screenshot embeds, and AI attribution.
+No reproducible gameplay defect, syntax/type error, broken node reference, or
+duplicate game-over connection was found. No gameplay code changes were needed
+during this review. The four pre-existing test scripts were preserved.
+
+The enemy AI suite was expanded from 35 to 47 checks. Added scenarios verify
+that an overlapping non-player CharacterBody2D is ignored, meteor/exit masks
+exclude the drone, a real meteor-player collision disables an existing drone,
+horizontal movement input escapes the attack windup, the attack hysteresis band
+does not cause an out-of-range hit, re-entering ATTACK resets the windup, and a
+freed player safely returns the drone to PATROL. The non-player fixture uses the
+same body type as the player and tests actual Area2D overlap before checking
+group filtering.
+
+All commands listed above were rerun with Godot 4.7.2: editor/import, 120-frame
+startup, the expanded 47-check AI suite, 22 gameplay checks, 14 UI checks, the
+separate Quit-button process, 132 audio/accessibility assertions, and 23 level
+audit checks all exited 0. The level audit included real 20/30-second countdowns.
+The final runs reported no script/runtime errors. `git diff --check` passed and
+all embedded local README image paths resolved. Godot generated import metadata
+for the three new screenshots.
+
+NavigationAgent2D is actively used for patrol and pursuit, with valid saved
+navigation polygons and real path queries/movement checked by the AI suite.
+The open arena has no internal physical obstacles requiring detours. Layer 2
+keeps the drone out of the meteor/exit detection masks; player movement and
+hazard metadata remain unchanged. Shutdown and restart checks confirm disabled
+motion/attacks, cancelled spawning, scene cleanup, and a single hit connection
+on the fresh drone.
+
+Completion and evasion are established under controlled automated scenarios.
+The AI suite isolates random meteor pressure and accelerates its completion
+timer; the real-duration level audit also disables meteors. Neither establishes
+human difficulty with both hazards active. Interactive playtesting of full
+Level 2, readability, sound, and attack feedback remains pending. In particular,
+review the central patrol detection gap described below. ATTACK deliberately
+holds still in the 35..45-pixel release band without hitting; beyond 45 pixels
+the drone resumes pursuit. Confirm this behavior feels fair during play.
+
+### Week 6 screenshots
+
+These 960 x 640 screenshots were captured by Codex directly from Godot 4.7.2's
+rendered Level 2 viewport on 2026-10-25. A temporary automated capture script
+disabled meteor spawning to isolate the drone and positioned the player beneath
+its patrol after the first capture. The drone spawned through its normal timer
+and entered CHASE and ATTACK through its actual detection/FSM logic. No gameplay
+scripts or scene resources were changed for the captures. These images document
+the states' appearance; they do not establish a student playtest or game balance.
+
+**PATROL:** The drone's cyan sensor is visible in the upper arena, away from the
+player's starting position, shortly after its three-second spawn delay.
+
+![Week 6 Level 2 Hunter Drone patrolling with a cyan sensor above the player's starting position](screenshots/week6_patrol.png)
+
+**CHASE:** After the player is positioned within detection range, the sensor
+turns amber and the drone navigates toward the player.
+
+![Week 6 Level 2 Hunter Drone chasing the detected player with an amber sensor](screenshots/week6_chase.png)
+
+**ATTACK:** The drone reaches attack range and displays its red sensor and ring
+during the windup, before reporting a hit.
+
+![Week 6 Level 2 Hunter Drone in attack range with a red sensor and attack ring beside the player](screenshots/week6_attack.png)
+
+### AI assistance and developer review
+
+Codex drafted the GDScript FSM, native drone appearance, navigation region,
+shared lifecycle integration, automated checks, and this documentation in
+response to the Week 6 implementation brief. This is AI-assisted implementation,
+not evidence that the student personally wrote, modified, or playtested it.
+
+The developer must personally review and understand the state enum, transition
+conditions, detection masks/group filtering, path following, and game-over
+signal connection. Open the scenes/scripts in Godot and inspect the navigation
+region against the actual walls. Play Level 2 with only A/D or arrows, checking
+that approaching either side of the patrol can trigger pursuit and that the
+windup permits an escape. Review the upper patrol's limited detection coverage:
+the central starting position can remain outside detection while stationary;
+meteors continue providing pressure there. Decide whether that balance suits
+the assignment and record any actual tuning rather than claiming it happened.
+
+Personal work still pending:
+
+- **Manual review/modifications:** [TODO: record what you actually inspected or
+  changed, why, and the relevant script/Inspector values; explicitly state if
+  no modifications were made.]
+- **Debugging record:** [TODO: record real issues, reproduction steps, fixes, and
+  retest results; state if no additional issues were found.]
+- **Interactive playtest:** [TODO: record date, duration, controls, pursuit/escape
+  observations, fairness with meteors/hazards, and any tuning/retest results.]
+- **Lifecycle review:** [TODO: verify death, survival expiry, exit completion,
+  Restart, and Main Menu; confirm stopped drones and one fresh drone per retry.]
+- **Visual/accessibility check:** [TODO: inspect drone/state cues at 960x640,
+  both text sizes, and resized windows.]
+
+For direct testing open `level_2.tscn` and press F6; wait three seconds for the
+drone. Use **Debug > Visible Navigation** and **Visible Collision Shapes** to
+inspect paths/areas. Test real 30-second survival and move right to the green
+exit. Repeat after death and restart. Review changes before making your own
+submission commit/push; this implementation performs neither action.
 
 ## Week 7 - Planned
 
